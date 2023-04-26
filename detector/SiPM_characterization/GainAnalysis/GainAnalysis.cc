@@ -25,6 +25,20 @@
 #include "InfoAcq.h"
 #include "InfoAcq.cc"
 
+/*
+ In this file there are all the required functions to obtain 
+ the gain of left and right SiPM. At first we need to load the files, 
+ then we have to get the gain in order to fit the values as a function 
+ of the bias voltage. What we expect is a linear behaviour.
+ 
+  Function list:
+    - FillOutFile:
+    - Find_peaks:
+    - GetGain:
+    - ReadTree:
+
+
+ */
 
 /////////////// FUNCTION DECLARATIONS /////////////////
 void FillOutFile(   const TString root_file, 
@@ -39,7 +53,10 @@ void Find_peaks(    const TString file_name,    const TString histogram_name,
 void GetGain(   const TString root_file,  const char *dirname, const char *ext,
                 const bool out_val){
 
-    //Prima di tutto devo creare un root file con all'interno tutti gli istogrammi
+    // First of all it is necessary to create a root file with all the histograms in it.
+    // These histograms refer to the spectrum of peaks during a certain time interval and
+    // they should show at least 1 pseudo-gaussian peaks. Keeping the voltage greater than 
+    // a certain threshold  (V_breakdown+shift) it is possible to see 2 or more peaks.         
     FillOutFile(root_file, dirname, ext);
 
     //definisco il nome del txt_file che magari vorrò riempire (se out_val == true)
