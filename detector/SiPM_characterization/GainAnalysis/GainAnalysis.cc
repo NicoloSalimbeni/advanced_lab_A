@@ -1,5 +1,8 @@
 // Copyright 2023 Andrea De Vita - Nicolò Salimbeni
 
+// GainAnalysis.cc
+// Created on: Apr 27, 2023
+
 //root libraries
 #include "TDirectory.h"
 #include "TF1.h"
@@ -20,10 +23,10 @@
 #include <vector>
 
 //custom libraries
-#include "AnUtil.h"
-#include "Event.h"
-#include "InfoAcq.h"
-#include "InfoAcq.cc"
+#include "./../../../include/AnUtil.h"
+#include "./../../../include/Event.h"
+#include "./../../../include/InfoAcq.h"
+#include "./../../../src/InfoAcq.cc"
 
 /*
  In this file there are all the required functions to obtain 
@@ -32,12 +35,10 @@
  of the bias voltage. What we expect is a linear behaviour.
  
   Function list:
-    - FillOutFile:
-    - Find_peaks:
-    - GetGain:
-    - ReadTree:
-
-
+    - FillOutFile: it fills an output.root file with the histograms inside the dirname/file.root
+    - Find_peaks: it gets the gain and the rms error of a given histogram inside a given file.root
+    - GetGain: it gets the gains of all the histograms inside an output.root file
+    - ReadTree: it reads the tree of the data.root file
  */
 
 /////////////// FUNCTION DECLARATIONS /////////////////
@@ -53,38 +54,46 @@ void Find_peaks(    const TString file_name,    const TString histogram_name,
 void GetGain(   const TString root_file,  const char *dirname, const char *ext,
                 const bool out_val){
 
+    /*
+      root_file -> name of the file that contains all the histograms
+      dirname -> name of the directory which contains data
+      ext -> extension of the files inside the dirname
+      out_val -> true if I want ot create a file.txt which is filled with gains w.r.t. the bias voltage
+    */
+
     // First of all it is necessary to create a root file with all the histograms in it.
     // These histograms refer to the spectrum of peaks during a certain time interval and
     // they should show at least 1 pseudo-gaussian peaks. Keeping the voltage greater than 
     // a certain threshold  (V_breakdown+shift) it is possible to see 2 or more peaks.         
     FillOutFile(root_file, dirname, ext);
 
-    //definisco il nome del txt_file che magari vorrò riempire (se out_val == true)
+    //Define the name of the txt_file that I could fill with gain stats (if out_val == true)
     TString txt_file;
     if(out_val ==true){
-        
-        //chiedo nome del txt file da creare
+
         std::cout << "What is the name of the txt file: ";
         std::cin >> txt_file;
 
-        //apro txt file e ci metto intestazione
+        //Fill the txt_file with the heading
         std::ofstream file(txt_file, std::ios::out);
         file << "V[dV]\tGain[mV]\tSigmaV[dV]\tSigmaGain[mv]" << std::endl;
 
-        //chiudo txt file
+        //Close the txt file
         file.close();
     }
 
-    //
-    // A questo punto ho prodotto 2 file: un root file con gli istogrammi e un txt file con intestazione
-    //
+    /*
+      At this point I should have the following:
+        - file.root with all the histograms in it
+        - if out_val == true -> file.txt with the heading
+    */
 
-    //apro il root_file e guardo i suoi contenuti (gli istogrammi)
+    //Open the output.root and get the list of histograms
     TFile *file = TFile::Open(root_file,"READ");
     TList* list = file->GetListOfKeys();
 
-    // loop sugli istogrammi in modo tale da ricavare il gain per ognuno di essi 
-    // (se out_val == true stampiamo anche i risultati nel txt_file)
+    // Loop over the hists in order to get the gain of each of them 
+    // If out_val == true -> print the results in txt_file
     TIter next(list);
         TKey* key;
         while ((key = (TKey*)next())) {
@@ -104,12 +113,12 @@ float adc_to_mv(int16_t raw, int16_t rangeIndex, int16_t maxADCValue) {
 
 TH1F* ReadTree(const char *fileName, bool negative, int channel = chB,
                 Long64_t nEvtMax = -1) {
-  // dichiaro le struct
+  // struct declaration
   InfoAcq::chSettings       chSet1;
   InfoAcq::chSettings       chSet2;
   InfoAcq::samplingSettings sampSet;
 
-  // dichiaro le variabili dell'evento
+  // event variables declaration
   unsigned long long ID;
   int                samplesStored;
   long long          triggerInstant;
@@ -117,10 +126,10 @@ TH1F* ReadTree(const char *fileName, bool negative, int channel = chB,
   short             *sample0;
   short             *sample1;
 
-  // apro il file in sola lettura
+  // Open the file in read mode
   TFile *input_file = new TFile(fileName, "READ");
 
-  // leggo i trees
+  // read the trees
   TTree *treeCh   = (TTree *)input_file->Get("Channels");
   TTree *treeSamp = (TTree *)input_file->Get("SampSets");
   TTree *treeEvt  = (TTree *)input_file->Get("Event");
@@ -249,7 +258,7 @@ void Find_peaks(const TString file_name, const TString histogram_name,
     std::cout << "Gain mean is:\t" << mean_gain << std::endl;
     std::cout << "Gain rms is:\t" << rms_gain << std::endl;
 
-    //se print_out è true salviamo il risultato in un txt file già esistente e già inizializzato
+    //if print_out==true -> save the result in an existing txt_file
     if (print_out == true){
         std::ofstream file(file_txt, std::ios::app);
         file <<histogram_name(10,13)<<"\t"<< mean_gain<<"\t"<< "3"<<"\t"<<rms_gain<< std::endl;
@@ -262,12 +271,14 @@ void FillOutFile(   const TString root_file,
                     const char *dirname ,
                     const char *ext){
     
-
+    //Get the name of the directory and create a list with all the names of the files in it
     TSystemDirectory         dir(dirname, dirname);
     TList                   *files = dir.GetListOfFiles();
 
+    //create a vector of strings that will be filled with the file names
     std::vector<std::string> file_list;
 
+    //Loop to fill file_list
     if (files) {
         TSystemFile *file;
         TString      fname;
@@ -280,8 +291,11 @@ void FillOutFile(   const TString root_file,
             }
         }
     }
-
+    //Sort file_list in alphabetical order. Since files are inizialized in a specific way (ex. gain_A_SX_300.root),
+    // alphabetical ordering is used to order w.r.t. the bias voltage 
     std::sort(file_list.begin(), file_list.end());
+
+    //loop to write the histograms inside the output.root file
     for (int j = 0; j < file_list.size(); j++) {
 
         TString file_path = dirname + file_list[j];
