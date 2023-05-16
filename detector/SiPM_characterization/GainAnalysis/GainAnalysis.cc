@@ -172,7 +172,7 @@ TH1F* ReadTree(const char *fileName, bool negative, int channel = chB,
   float maximum = 0.0;
   float minimum = 0.0;
 
-  // spettro in energia
+  // energy spectrum
 
   // float xmin= negative?
   // adc_to_mv(sampSet.max_adc_value,chSet.range,-1*sampSet.max_adc_value) : 0 ;
@@ -190,6 +190,7 @@ TH1F* ReadTree(const char *fileName, bool negative, int channel = chB,
   cerr << " #Samples: " << sampSet.samplesStoredPerEvent << endl;
   cerr << " Timestamp: " << sampSet.timeIntervalNanoseconds << " ns" << endl;
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   for (Long64_t index = 0; index < nEvt; index++) {
     treeEvt->GetEntry(index);
     for (int ii = 0; ii < sampSet.samplesStoredPerEvent; ii++) {
@@ -198,7 +199,9 @@ TH1F* ReadTree(const char *fileName, bool negative, int channel = chB,
       if (value > maximum) maximum = value;
       if (value < minimum) minimum = value;
     }
-    spectrumMaximum->Fill(negative ? minimum : maximum);
+
+    //std::cout << minimum - maximum << std::endl;
+    spectrumMaximum->Fill(negative ? minimum - maximum : maximum-minimum);
     maximum = 0.0;
     minimum = 0.0;
   }
@@ -252,6 +255,9 @@ void Find_peaks(const TString file_name, const TString histogram_name,
         gains.push_back(gain);
     }
 
+    for (int j = 0; j < gains.size(); j++) {
+      std:cout << gains[j] << std::endl;
+    }
     // print the mean gain
     Double_t mean_gain = AnUtil::Mean(gains, gains.size());
     Double_t rms_gain  = AnUtil::Rms(gains, gains.size());
@@ -299,10 +305,11 @@ void FillOutFile(   const TString root_file,
     for (int j = 0; j < file_list.size(); j++) {
 
         TString file_path = dirname + file_list[j];
+        TString Ifile = file_list[j];
         TH1F* Hist=(TH1F *)ReadTree(file_path,true,chA,-1)->Clone("Hist");
 
         TFile *f = TFile::Open(root_file,"UPDATE");
-        TString histname((file_path)(5,13));
+        TString histname((Ifile)(0,13));
         
         Hist->Write(histname);
         f->Close();
