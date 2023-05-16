@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import scipy as sp
 from scipy.odr import *
 
-df=pd.read_csv("gain.txt",sep="\t")
+filepath="txt_files/C_SX"
+df=pd.read_csv(filepath+".txt",sep="\t")
 
 x_data=df["V[dV]"]
 y_data=df["Gain[mV]"]
@@ -44,5 +45,5 @@ ax.set_ylabel("Gain [mV]",fontsize=16)
 ax.grid()
 ax.legend(loc="upper left",fontsize=14)
 plt.show()
-fig.savefig("Gain_SiPM_A_SX.pdf")
+fig.savefig("filepath.pdf")
 
